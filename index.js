@@ -138,11 +138,12 @@ exports.registerPlugin = (cli, options)=>{
       return cb(null, content)
     }
     if(/(\.html)$/.test(data.outputFilePath)){
-      cb(null, setHtmlVersion(content, htmlRules, _version))
+      return cb(null, setHtmlVersion(content, htmlRules, _version))
     }
 
     if(/\.css/.test(data.outputFilePath)){
       return cb(null, setCssVersion(content, _version))
     }
+    cb(null, content)
   }, 99)
 }
