@@ -19,30 +19,20 @@ const getSetting = (options)=>{
   return setting
 }
 
-const getVersion = (version, cb)=>{
-  let commandStr = `git log -1 --format="%h"`;
+const getVersion = (version, gitHash)=>{
   let today = new Date();
   let versionType = version;
   if(/\{(.+)\}/.test(version)){
     versionType = version.match(/\{(.+)\}/).pop();
   }
   switch(versionType){
-    case "date": return cb(null, `${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}${today.getHours()}${today.getMinutes()}${today.getSeconds()}`);
+    case "date": return `${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}${today.getHours()}${today.getMinutes()}${today.getSeconds()}`;
     case "hash":
-      if(!_fs.existsSync(_path.join(process.cwd(), ".git"))){
-        return cb(new Error("非git项目不能生成hash值"))
+      if(!gitHash){
+        throw new Error('项目找不到hash值')
       }
-      _exec(commandStr, {cwd: process.cwd()}, (error, stdout, stderr)=>{
-        if(error){
-          return cb(error)
-        }
-        stdout = stdout.replace(/^(\s)+/, "").replace(/(\s)+$/, "");
-        if(/\s/.test(stdout)){
-          return cb(new Error("没有commit 历史， 无法生成hash值"))
-        }
-        cb(null, stdout)
-      })
-    default: cb(null, versionType)
+      return gitHash.substr(0, 8);
+    default: return versionType
   }
 }
 
@@ -74,18 +64,18 @@ const getHtmlRules = (htmlSetting)=>{
 
 }
 
-const setCssVersion = (content, version)=>{
+const setCssVersion = (content, version, format)=>{
   return content.replace(/url\(['"]?(.+?)['"]?\)/g, (all, match)=>{
     if(/\?/.test(match)){
       match = `${match}&__v=${version}`
     }else{
       match = `${match}?${version}`
     }
-    return `url('${match}')`
+    return `url('${format(match)}')`
   })
 }
 
-const setHtmlVersion = (content, rules, version)=>{
+const setHtmlVersion = (content, rules, version, format)=>{
   //替换html里面的链接
   rules.forEach((rule)=>{
     content = content.replace(rule.firstExpr, (line, match)=>{
@@ -95,7 +85,7 @@ const setHtmlVersion = (content, rules, version)=>{
         match = `${match}?${version}`
       }
       line = line.replace(rule.secondExpr, ()=>{
-        return rule.replaceTo.replace('{0}', match)
+        return rule.replaceTo.replace('{0}', format(match))
       })
       return line
     })
@@ -111,25 +101,23 @@ exports.registerPlugin = (cli, options)=>{
     return;
   }
   let setting = getSetting(options);
-  getVersion(setting.version, (error, version)=>{
-    if(error){throw error}
-    _version = version;
-  });
+
+  let format = options.formatURL ? cli.runtime.getRuntimeEnvFile(options.formatURL) : function(url){return url}
 
   let htmlRules = getHtmlRules(setting.html);
 
   cli.registerHook('route:willResponse', (req, data, responseContent, cb)=>{
     let pathname = data.realPath;
-    // 给css内image 加上 version
+    // 给css内image 加上 version 开发模式下默认为时间戳
     if(/(\.css)$/.test(pathname) && setting.css){
-        return cb(null, setCssVersion(responseContent, _version))
+      return cb(null, setCssVersion(responseContent, Date.now(), (url)=>{return url}))
     }
 
-    if(!/(\.html)$/.test(pathname)){
-      return cb(null, responseContent)
+    if(/(\.html)$/.test(pathname)){
+      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url)=>{return url}))
     }
 
-    cb(null, setHtmlVersion(responseContent, htmlRules, _version))
+    return cb(null, responseContent)
 
   }, 99);
 
@@ -137,13 +125,21 @@ exports.registerPlugin = (cli, options)=>{
     if(!content){
       return cb(null, content)
     }
+    let version = null;
+    try{
+      version = getVersion(setting.version, buildConfig.gitHash);
+    }catch(e){
+      return cb(e)
+    }
+
     if(/(\.html)$/.test(data.outputFilePath)){
-      return cb(null, setHtmlVersion(content, htmlRules, _version))
+      return cb(null, setHtmlVersion(content, htmlRules, version, format))
     }
 
     if(/\.css/.test(data.outputFilePath)){
-      return cb(null, setCssVersion(content, _version))
+      return cb(null, setCssVersion(content, version, format))
     }
+
     cb(null, content)
   }, 99)
 }
