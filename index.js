@@ -103,7 +103,6 @@ exports.registerPlugin = (cli, options)=>{
   let setting = getSetting(options);
 
   let format = options.formatURL ? cli.runtime.getRuntimeEnvFile(options.formatURL) : function(url){return url}
-
   let htmlRules = getHtmlRules(setting.html);
 
   cli.registerHook('route:willResponse', (req, data, responseContent, cb)=>{
