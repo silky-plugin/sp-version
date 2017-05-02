@@ -11,7 +11,24 @@
     "image": true //可选 是否给html内的imgae加版本号 默认： true
   },
   "css": true //可选 是否给css文件中的url加版本号 默认 true,
-  "formatURL": 'urlFomat.js'
+  "formatURL": 'urlFomat.js' //可选
 }
 
 ```
+
+### formatURL
+接收已经带了 hash后缀的url参数,仅`sr build`时有效
+默认
+```js
+function(url){return url}
+```
+
+当build参数存在`-X`时(即 `sr build -X`)时为：
+
+```js
+function(url){
+  return "/" + pkg.name + url //pkg.name 读取的是package.json的那么
+}
+```
+
+

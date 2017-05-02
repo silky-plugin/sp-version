@@ -17,6 +17,15 @@ const extend = (source, dest)=>{
   return source
 }
 
+const indexOf =function(arr, dest){
+  for(let i =0, len = arr.length; i < len; i++){
+    if(arr[i] == dest){
+      return i
+    }
+  }
+  return -1
+}
+
 const getSetting = (options)=>{
   let setting = {}
   if(null == options.css){
@@ -116,7 +125,7 @@ exports.registerPlugin = (cli, options)=>{
   }
   let setting = getSetting(options);
 
-  let format = options.formatURL ? cli.runtime.getRuntimeEnvFile(options.formatURL) : function(url){return url}
+
   let htmlRules = getHtmlRules(setting.html);
 
   cli.registerHook('route:willResponse', (req, data, responseContent, cb)=>{
@@ -144,7 +153,15 @@ exports.registerPlugin = (cli, options)=>{
     }catch(e){
       return cb(e)
     }
-
+    
+    let format = function(url){return url}
+    if(options.formatURL){
+      format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
+    }else if(indexOf(process.argv, "-X") != -1){
+      let pkg = require(_path.join(cli.cwd(), "package.json"))
+      format = function(url){ return "/" +pkg.name + url}
+    }
+    
     if(/(\.html)$/.test(data.outputFilePath)){
       return cb(null, setHtmlVersion(content, htmlRules, version, format))
     }
