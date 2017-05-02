@@ -3,6 +3,20 @@ const _path = require('path');
 const _exec = require('child_process').exec;
 
 let _version = ""
+
+const extend = (source, dest)=>{
+  if(!dest){
+    return source
+  }
+  if(!source){
+    return dest
+  }
+  Object.keys(dest).forEach(function(key){
+    source[key] = dest[key]
+  })
+  return source
+}
+
 const getSetting = (options)=>{
   let setting = {}
   if(null == options.css){
@@ -13,7 +27,7 @@ const getSetting = (options)=>{
   if(typeof(options.html) == 'boolean'){
     setting.html = options.html ? {css: true, image: true, js: true} : {css: false, image: false, js: false}
   }else{
-    setting.html = cli.utils.extend({css: true, image: true, js: true}, options.html)
+    setting.html = extend({css: true, image: true, js: true}, options.html)
   }
   setting.version = options.version
   return setting
