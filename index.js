@@ -26,6 +26,11 @@ const indexOf =function(arr, dest){
   return -1
 }
 
+const nowHash = function(){
+  let today = new Date();
+  return `${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}${today.getHours()}${today.getMinutes()}${today.getSeconds()}`;
+}
+
 const getSetting = (options)=>{
   let setting = {}
   if(null == options.css){
@@ -43,13 +48,13 @@ const getSetting = (options)=>{
 }
 
 const getVersion = (version, gitHash)=>{
-  let today = new Date();
   let versionType = version;
   if(/\{(.+)\}/.test(version)){
     versionType = version.match(/\{(.+)\}/).pop();
   }
   switch(versionType){
-    case "date": return `${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}${today.getHours()}${today.getMinutes()}${today.getSeconds()}`;
+    case "now": return nowHash()
+    case "date": return nowHash()
     case "hash":
       if(!gitHash){
         throw new Error('项目找不到hash值')
@@ -159,7 +164,12 @@ exports.registerPlugin = (cli, options)=>{
       format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
     }else if(indexOf(process.argv, "-X") != -1){
       let pkg = require(_path.join(cli.cwd(), "package.json"))
-      format = function(url){ return "/" +pkg.name + url}
+      format = function(url){ 
+        if(/^(http:|https:)?\/\//.test(url)){
+          return url
+        }
+        return "/" +pkg.name + url
+      }
     }
     
     if(/(\.html)$/.test(data.outputFilePath)){
