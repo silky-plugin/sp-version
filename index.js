@@ -17,9 +17,9 @@ const extend = (source, dest)=>{
   return source
 }
 
-const indexOf =function(arr, dest){
-  for(let i =0, len = arr.length; i < len; i++){
-    if(arr[i] == dest){
+const indexOf = (arr, item)=>{
+  for(let i= 0, len = arr.length; i < len; i++){
+    if(item.toLowerCase() == arr[i].toLowerCase()){
       return i
     }
   }

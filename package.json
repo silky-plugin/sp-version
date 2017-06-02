@@ -1,6 +1,6 @@
 {
   "name": "sp-version",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "静态文件后缀添加版本号",
   "main": "index.js",
   "author": "",
