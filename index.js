@@ -96,6 +96,9 @@ const getHtmlRules = (htmlSetting)=>{
 //替换css里面的image
 const setCssVersion = (content, version, format)=>{
   return content.replace(/url\(['"]?(.+?)['"]?\)/g, (all, match)=>{
+    if(match.indexOf("http://") == 0 || match.indexOf("https://") == 0 || match.indexOf("//") == 0){
+      return all
+    }
     return `url('${format(match,version)}')`
   })
 }
@@ -104,6 +107,9 @@ const setHtmlVersion = (content, rules, version, format)=>{
   //替换html里面的链接
   rules.forEach((rule)=>{
     content = content.replace(rule.firstExpr, (line, match)=>{
+      if(match.indexOf("http://") == 0 || match.indexOf("https://") == 0 || match.indexOf("//") == 0){
+        return line
+      }
       line = line.replace(rule.secondExpr, ()=>{
         return rule.replaceTo.replace('{0}', format(match, version))
       })
@@ -185,27 +191,36 @@ exports.registerPlugin = (cli, options)=>{
       return cb(e)
     }
     let queue = [];
-    queue.push(function(next){
-      _fs.move(_path.join(buildConfig.outdir, "css"), _path.join(buildConfig.outdir, version+"-css"), next)
-    })
-    queue.push((next)=>{
-      _fs.mkdirpSync(_path.join(buildConfig.outdir, "css"))
-      _fs.move(_path.join(buildConfig.outdir, version+"-css"), _path.join(buildConfig.outdir, "css",version), next)
-    })
-    queue.push(function(next){
-      _fs.move(_path.join(buildConfig.outdir, "js"), _path.join(buildConfig.outdir, version+"-js"), next)
-    })
-    queue.push((next)=>{
-      _fs.mkdirpSync(_path.join(buildConfig.outdir, "js"))
-      _fs.move(_path.join(buildConfig.outdir, version+"-js"), _path.join(buildConfig.outdir, "js",version), next)
-    })
-    queue.push(function(next){
-      _fs.move(_path.join(buildConfig.outdir, "image"), _path.join(buildConfig.outdir, version+"-image"), next)
-    })
-    queue.push((next)=>{
-      _fs.mkdirpSync(_path.join(buildConfig.outdir, "image"))
-      _fs.move(_path.join(buildConfig.outdir, version+"-image"), _path.join(buildConfig.outdir, "image",version), next)
-    })
+    let cssOut = _path.join(buildConfig.outdir, "css");
+    if(_fs.existsSync(cssOut)){
+         queue.push(function(next){
+          _fs.move(cssOut, _path.join(buildConfig.outdir, version+"-css"), next)
+        })
+        queue.push((next)=>{
+          _fs.mkdirpSync(cssOut)
+          _fs.move(_path.join(buildConfig.outdir, version+"-css"), _path.join(cssOut, version), next)
+        })
+    }
+    let jsOut =  _path.join(buildConfig.outdir, "js");
+    if(_fs.existsSync(jsOut)){
+      queue.push(function(next){
+        _fs.move(jsOut, _path.join(buildConfig.outdir, version+"-js"), next)
+      })
+      queue.push((next)=>{
+        _fs.mkdirpSync(jsOut)
+        _fs.move(_path.join(buildConfig.outdir, version+"-js"), _path.join(jsOut,version), next)
+      })
+    }
+   let imageOut = _path.join(buildConfig.outdir, "image")
+   if(_fs.existsSync(imageOut)){
+      queue.push(function(next){
+        _fs.move(imageOut, _path.join(buildConfig.outdir, version+"-image"), next)
+      })
+      queue.push((next)=>{
+        _fs.mkdirpSync(imageOut)
+        _fs.move(_path.join(buildConfig.outdir, version+"-image"), _path.join(imageOut,version), next)
+      })
+   }
     _async.waterfall(queue, cb)
   }, 90)
 }

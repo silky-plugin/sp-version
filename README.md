@@ -12,6 +12,7 @@
   },
   "css": true //可选 是否给css文件中的url加版本号 默认 true,
   "formatURL": 'urlFomat.js' //可选
+  "versionAsVersion": true//可选
 }
 
 ```
