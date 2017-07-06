@@ -4,5 +4,9 @@
   "description": "静态文件后缀添加版本号",
   "main": "index.js",
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.5.0",
+    "fs-extra": "^3.0.1"
+  }
 }

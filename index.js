@@ -1,7 +1,7 @@
-const _fs = require('fs');
+const _fs = require('fs-extra');
 const _path = require('path');
 const _exec = require('child_process').exec;
-
+const _async = require('async')
 let _version = ""
 
 const extend = (source, dest)=>{
@@ -44,6 +44,7 @@ const getSetting = (options)=>{
     setting.html = extend({css: true, image: true, js: true}, options.html)
   }
   setting.version = options.version
+  setting.versionAsDir = options.versionAsDir
   return setting
 }
 
@@ -92,14 +93,10 @@ const getHtmlRules = (htmlSetting)=>{
 
 }
 
+//替换css里面的image
 const setCssVersion = (content, version, format)=>{
   return content.replace(/url\(['"]?(.+?)['"]?\)/g, (all, match)=>{
-    if(/\?/.test(match)){
-      match = `${match}&__v=${version}`
-    }else{
-      match = `${match}?${version}`
-    }
-    return `url('${format(match)}')`
+    return `url('${format(match,version)}')`
   })
 }
 
@@ -107,13 +104,8 @@ const setHtmlVersion = (content, rules, version, format)=>{
   //替换html里面的链接
   rules.forEach((rule)=>{
     content = content.replace(rule.firstExpr, (line, match)=>{
-      if(/\?/.test(match)){
-        match = `${match}&__v=${version}`
-      }else{
-        match = `${match}?${version}`
-      }
       line = line.replace(rule.secondExpr, ()=>{
-        return rule.replaceTo.replace('{0}', format(match))
+        return rule.replaceTo.replace('{0}', format(match, version))
       })
       return line
     })
@@ -137,11 +129,11 @@ exports.registerPlugin = (cli, options)=>{
     let pathname = data.realPath;
     // 给css内image 加上 version 开发模式下默认为时间戳
     if(/(\.css)$/.test(pathname) && setting.css){
-      return cb(null, setCssVersion(responseContent, Date.now(), (url)=>{return url}))
+      return cb(null, setCssVersion(responseContent, Date.now(), (url, version)=>{return url+"?"+version}))
     }
 
     if(/(\.html)$/.test(pathname)){
-      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url)=>{return url}))
+      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url, version)=>{return url+"?"+version}))
     }
 
     return cb(null, responseContent)
@@ -182,4 +174,38 @@ exports.registerPlugin = (cli, options)=>{
 
     cb(null, content)
   }, 99)
+  if(!setting.versionAsDir){
+    return
+  }
+  cli.registerHook('build:end', (buildConfig, cb)=>{
+    let version = null;
+    try{
+      version = getVersion(setting.version, buildConfig.gitHash);
+    }catch(e){
+      return cb(e)
+    }
+    let queue = [];
+    queue.push(function(next){
+      _fs.move(_path.join(buildConfig.outdir, "css"), _path.join(buildConfig.outdir, version+"-css"), next)
+    })
+    queue.push((next)=>{
+      _fs.mkdirpSync(_path.join(buildConfig.outdir, "css"))
+      _fs.move(_path.join(buildConfig.outdir, version+"-css"), _path.join(buildConfig.outdir, "css",version), next)
+    })
+    queue.push(function(next){
+      _fs.move(_path.join(buildConfig.outdir, "js"), _path.join(buildConfig.outdir, version+"-js"), next)
+    })
+    queue.push((next)=>{
+      _fs.mkdirpSync(_path.join(buildConfig.outdir, "js"))
+      _fs.move(_path.join(buildConfig.outdir, version+"-js"), _path.join(buildConfig.outdir, "js",version), next)
+    })
+    queue.push(function(next){
+      _fs.move(_path.join(buildConfig.outdir, "image"), _path.join(buildConfig.outdir, version+"-image"), next)
+    })
+    queue.push((next)=>{
+      _fs.mkdirpSync(_path.join(buildConfig.outdir, "image"))
+      _fs.move(_path.join(buildConfig.outdir, version+"-image"), _path.join(buildConfig.outdir, "image",version), next)
+    })
+    _async.waterfall(queue, cb)
+  }, 90)
 }

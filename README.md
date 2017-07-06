@@ -20,7 +20,7 @@
 接收已经带了 hash后缀的url参数,仅`sr build`时有效
 默认
 ```js
-function(url){return url}
+function(url,version){return url+"?"}
 ```
 
 当build参数存在`-X`时(即 `sr build -X`)时为：
