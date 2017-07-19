@@ -69,28 +69,27 @@ const getHtmlRules = (htmlSetting)=>{
   let rules = []
   if(htmlSetting.css){
     rules.push({
-      firstExpr: /<link.+href=['"](.+?)['"].*>/g,
-      secondExpr: /href=['"](.+?)['"]/i,
+      firstExpr: /<link.+href=['"]([^"']+)['"].*>/g,
+      secondExpr: /href=['"]([^"']+)['"]/i,
       replaceTo: "href='{0}'"
     })
   }
   if(htmlSetting.js){
     rules.push({
-      firstExpr: /<script.+src=['"](.+?)['"].*>/g,
-      secondExpr: /src=['"](.+?)['"]/i,
+      firstExpr: /<script.+src=['"]([^"']+)['"].*>/g,
+      secondExpr: /src=['"]([^"']+)['"]/i,
       replaceTo: "src='{0}'"
     })
   }
 
   if(htmlSetting.image){
     rules.push({
-      firstExpr: /<img.+src=['"](.+?)['"].*>/g,
-      secondExpr: /src=['"](.+?)['"]/i,
+      firstExpr: /<img.+src=['"]([^"']+)['"].*>/g,
+      secondExpr: /src=['"]([^"']+)['"]/i,
       replaceTo: "src='{0}'"
     })
   }
   return rules;
-
 }
 
 //替换css里面的image
