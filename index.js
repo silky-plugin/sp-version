@@ -39,9 +39,9 @@ const getSetting = (options)=>{
     setting.css = options.css
   }
   if(typeof(options.html) == 'boolean'){
-    setting.html = options.html ? {css: true, image: true, js: true} : {css: false, image: false, js: false}
+    setting.html = options.html ? {css: true, image: true, js: true, meta: true} : {css: false, image: false, js: false}
   }else{
-    setting.html = extend({css: true, image: true, js: true}, options.html)
+    setting.html = extend({css: true, image: true, js: true, meta: true}, options.html)
   }
   setting.version = options.version
   setting.versionAsDir = options.versionAsDir
@@ -87,6 +87,13 @@ const getHtmlRules = (htmlSetting)=>{
       firstExpr: /<img.+src=['"]([^"']+)['"].*>/g,
       secondExpr: /src=['"]([^"']+)['"]/i,
       replaceTo: "src='{0}'"
+    })
+  }
+  if(htmlSetting.meta){
+    rules.push({
+      firstExpr: /<meta[^>]+content=['"]([^"']+)['"][^>]*>/g,
+      secondExpr: /content=['"]([^"']+)['"]/i,
+      replaceTo: "content='{0}'"
     })
   }
   return rules;
