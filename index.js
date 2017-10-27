@@ -139,6 +139,9 @@ exports.registerPlugin = (cli, options)=>{
 
   cli.registerHook('route:willResponse', (req, data, responseContent, cb)=>{
     let pathname = data.realPath;
+    if(!responseContent){
+      return cb(null, responseContent)
+    }
     // 给css内image 加上 version 开发模式下默认为时间戳
     if(/(\.css)$/.test(pathname) && setting.css){
       return cb(null, setCssVersion(responseContent, Date.now(), (url, version)=>{return url+"?"+version}))
