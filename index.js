@@ -69,14 +69,14 @@ const getHtmlRules = (htmlSetting)=>{
   let rules = []
   if(htmlSetting.css){
     rules.push({
-      firstExpr: /<link.+href=['"]([^"']+)['"].*>/g,
+      firstExpr: /<link.+href=['"]([^"'>]+)['"][^>]*>/g,
       secondExpr: /href=['"]([^"']+)['"]/i,
       replaceTo: "href='{0}'"
     })
   }
   if(htmlSetting.js){
     rules.push({
-      firstExpr: /<script.+src=['"]([^"']+)['"].*>/g,
+      firstExpr: /<script.+src=['"]([^"'>]+)['"][^>]*>/g,
       secondExpr: /src=['"]([^"']+)['"]/i,
       replaceTo: "src='{0}'"
     })
@@ -84,7 +84,7 @@ const getHtmlRules = (htmlSetting)=>{
 
   if(htmlSetting.image){
     rules.push({
-      firstExpr: /<img.+src=['"]([^"']+)['"].*>/g,
+      firstExpr: /<img.+src=['"]([^"'>]+)['"][^>]*>/g,
       secondExpr: /src=['"]([^"']+)['"]/i,
       replaceTo: "src='{0}'"
     })
@@ -144,11 +144,21 @@ exports.registerPlugin = (cli, options)=>{
     }
     // 给css内image 加上 version 开发模式下默认为时间戳
     if(/(\.css)$/.test(pathname) && setting.css){
-      return cb(null, setCssVersion(responseContent, Date.now(), (url, version)=>{return url+"?"+version}))
+      return cb(null, setCssVersion(responseContent, Date.now(), (url, version)=>{
+        if(url.indexOf("?")!=-1){
+          return url+"&dev_forbid_cache="+version
+        }
+        return url+"?dev_forbid_cache="+version
+      }))
     }
 
     if(/(\.html)$/.test(pathname)){
-      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url, version)=>{return url+"?"+version}))
+      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url, version)=>{
+        if(url.indexOf("?")!=-1){
+          return url+"&dev_forbid_cache="+version
+        }
+        return url+"?dev_forbid_cache="+version
+      }))
     }
 
     return cb(null, responseContent)
