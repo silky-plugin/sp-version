@@ -164,7 +164,27 @@ exports.registerPlugin = (cli, options)=>{
     return cb(null, responseContent)
 
   }, 99);
+  cli.registerHook('preview:beforeResponse', (req, data, responseContent,cb)=>{
+    if(!responseContent){
+      return cb(null, responseContent)
+    }
+    let pathname = data.realPath;
+    if(!/(\.html)$/.test(pathname)){
+      return  cb(null, responseContent)
+    }
 
+    let version = null;
+    try{
+      version = getVersion(setting.version, data.__gitHash);
+    }catch(e){
+      return cb(e)
+    }
+    let format = function(url){return url}
+    if(options.formatURL){
+      format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
+    }
+    cb(null, setHtmlVersion(responseContent, htmlRules, version, format))
+  })
   cli.registerHook('build:didCompile', (buildConfig, data, content, cb)=>{
     if(!content){
       return cb(null, content)
