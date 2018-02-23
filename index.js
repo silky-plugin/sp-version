@@ -100,16 +100,16 @@ const getHtmlRules = (htmlSetting)=>{
 }
 
 //替换css里面的image
-const setCssVersion = (content, version, format)=>{
+const setCssVersion = (content, format)=>{
   return content.replace(/url\(['"]?(.+?)['"]?\)/g, (all, match)=>{
     if(match.indexOf("http://") == 0 || match.indexOf("https://") == 0 || match.indexOf("//") == 0){
       return all
     }
-    return `url('${format(match,version)}')`
+    return `url('${format(match)}')`
   })
 }
 
-const setHtmlVersion = (content, rules, version, format)=>{
+const setHtmlVersion = (content, rules, format)=>{
   //替换html里面的链接
   rules.forEach((rule)=>{
     content = content.replace(rule.firstExpr, (line, match)=>{
@@ -117,7 +117,7 @@ const setHtmlVersion = (content, rules, version, format)=>{
         return line
       }
       line = line.replace(rule.secondExpr, ()=>{
-        return rule.replaceTo.replace('{0}', format(match, version))
+        return rule.replaceTo.replace('{0}', format(match))
       })
       return line
     })
@@ -143,21 +143,22 @@ exports.registerPlugin = (cli, options)=>{
       return cb(null, responseContent)
     }
     // 给css内image 加上 version 开发模式下默认为时间戳
+    let version = Date.now()
     if(/(\.css)$/.test(pathname) && setting.css){
-      return cb(null, setCssVersion(responseContent, Date.now(), (url, version)=>{
+      return cb(null, setCssVersion(responseContent, (url)=>{
         if(url.indexOf("?")!=-1){
-          return url+"&dev_forbid_cache="+version
+          return url+"&dev_forbid_cache="+ version
         }
-        return url+"?dev_forbid_cache="+version
+        return url+"?dev_forbid_cache="+ version
       }))
     }
 
     if(/(\.html)$/.test(pathname)){
-      return cb(null, setHtmlVersion(responseContent, htmlRules, Date.now(), (url, version)=>{
+      return cb(null, setHtmlVersion(responseContent, htmlRules, (url)=>{
         if(url.indexOf("?")!=-1){
-          return url+"&dev_forbid_cache="+version
+          return url+"&dev_forbid_cache="+ version
         }
-        return url+"?dev_forbid_cache="+version
+        return url+"?dev_forbid_cache="+ version
       }))
     }
 
@@ -183,8 +184,9 @@ exports.registerPlugin = (cli, options)=>{
     if(options.formatURL){
       format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
     }
-    cb(null, setHtmlVersion(responseContent, htmlRules, version, format))
+    cb(null, setHtmlVersion(responseContent, htmlRules, (match)=>{return format(match, version,{projectName: cli.options.projectName})}))
   })
+  
   cli.registerHook('build:didCompile', (buildConfig, data, content, cb)=>{
     if(!content){
       return cb(null, content)
@@ -200,21 +202,20 @@ exports.registerPlugin = (cli, options)=>{
     if(options.formatURL){
       format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
     }else if(indexOf(process.argv, "-X") != -1){
-      let pkg = require(_path.join(cli.cwd(), "package.json"))
       format = function(url){ 
         if(/^(http:|https:)?\/\//.test(url)){
           return url
         }
-        return "/" +pkg.name + url
+        return "/" + cli.options.projectName+ url
       }
     }
     
     if(/(\.html)$/.test(data.outputFilePath)){
-      return cb(null, setHtmlVersion(content, htmlRules, version, format))
+      return cb(null, setHtmlVersion(content, htmlRules, (match)=>{return format(match, version,{projectName: cli.options.projectName})}))
     }
 
     if(/\.css/.test(data.outputFilePath)){
-      return cb(null, setCssVersion(content, version, format))
+      return cb(null, setCssVersion(content, (match)=>{return format(match, version,{projectName: cli.options.projectName})}))
     }
 
     cb(null, content)
