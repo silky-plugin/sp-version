@@ -161,30 +161,21 @@ exports.registerPlugin = (cli, options)=>{
         return url+"?dev_forbid_cache="+ version
       }))
     }
-
     return cb(null, responseContent)
-
   }, 99);
-  cli.registerHook('preview:beforeResponse', (req, data, responseContent,cb)=>{
-    if(!responseContent){
-      return cb(null, responseContent)
-    }
-    let pathname = data.realPath;
-    if(!/(\.html)$/.test(pathname)){
-      return  cb(null, responseContent)
-    }
 
+  cli.registerHook('precompile:replace', (buildConfig, content, finish)=>{
     let version = null;
     try{
-      version = getVersion(setting.version, data.__gitHash);
+      version = getVersion(setting.version, buildConfig.gitHash);
     }catch(e){
-      return cb(e)
+      return finish(e)
     }
     let format = function(url){return url}
     if(options.formatURL){
       format = cli.runtime.getRuntimeEnvFile(options.formatURL) 
     }
-    cb(null, setHtmlVersion(responseContent, htmlRules, (match)=>{return format(match, version,{projectName: cli.options.projectName})}))
+    finish(null, setHtmlVersion(content, htmlRules, (match)=>{return format(match, version,{projectName: cli.options.projectName})}))
   })
   
   cli.registerHook('build:didCompile', (buildConfig, data, content, cb)=>{
